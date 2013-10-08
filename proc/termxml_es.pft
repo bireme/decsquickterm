@@ -1,0 +1,18 @@
+if mfn = 2 then 
+	'<?xml version="1.0" encoding="ISO-8859-1"?>'/
+	'<decs-term-list lang="es">'/
+fi,
+if p(v2) then	
+	x5,'<term mfn="'mfn(0)'">'/
+	x10,'<descriptor>'v2'</descriptor>'/
+	x10,'<tree_id>'if p(v20) then v20[1] else v10 fi'</tree_id>'/
+		if p(v50^e) then
+			x10,'<synonym_list>'/
+			(x15|<synonym>|v50^e|</synonym>|/)
+			x10,'</synonym_list>'/	
+		fi	
+	x5,'</term>'/
+fi,
+if mfn = MAXMFN-1 then
+	'</decs-term-list>'/
+fi
