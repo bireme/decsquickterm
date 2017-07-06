@@ -19,9 +19,11 @@ import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Hits;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.SortField;
 import org.apache.lucene.store.RAMDirectory;
 import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.TopDocs;
 
 import org.bireme.dia.analysis.StandardLatinAnalyzer;
 
@@ -108,27 +110,43 @@ public class Search extends HttpServlet {
         }
         
         log.debug(query.toString());
-        
-        hits = searcher[index].search(query, new Sort("term"));
-        
+
         PrintWriter out = response.getWriter();
         response.setContentType("text/xml;charset=ISO-8859-1");
         response.setHeader("Cache-Control", "no-cache");
         out.println("<?xml version=\"1.0\" encoding=\"ISO-8859-1\"?>");
         out.println("<DeCSTermService version=\"0.1.0\">");
+
+        // Get TOP two results (exact term and qualifier)
+        Integer numHits = 2;
+        String term = null;
+        TopDocs topDocs = searcher[index].search(query, numHits);
+        ScoreDoc[] topHits = topDocs.scoreDocs;
         
-        if (hits != null) {
-            int len = hits.length();
-            int to = (len > count ? count : len);
-            String term, treeId = null;
+        if (topDocs != null){
+            out.println("<Result total=\"" + topDocs.totalHits + "\" count=\"" + count + "\" >");
             
-            out.println("<Result total=\"" + len + "\" count=\"" + count + "\" >");
-            for (int i = 0; i < to; i++) {
-                doc = hits.doc(i);
-                treeId  = doc.get("tree_id");
+            // return at top of xml the two more relevant results first
+            for (int i = 0; i < topHits.length; i++) {
+                int docId = topHits[i].doc;
+                doc = searcher[index].doc(docId);
                 term = doc.get("term");
                 term = term.replaceAll("&","&amp;");
-                out.println("<item id=\"" + treeId + "\" term=\"" + term + "\"/>");
+                out.println("<item id=\"" + doc.get("tree_id") + "\" term=\"" + term + "\"/>");
+            }
+                
+            // re-execute search sort alphabetic by term
+            hits = searcher[index].search(query, new Sort("term"));
+      
+            int len = hits.length();
+            int to = (len > count ? count : len);
+            
+            // return the next results
+            for (int i = 0; i < to; i++) {
+                doc = hits.doc(i);
+                term = doc.get("term");
+                term = term.replaceAll("&","&amp;");
+                out.println("<item id=\"" + doc.get("tree_id") + "\" term=\"" + term + "\"/>");
             }
             out.println("</Result>");
         }else{

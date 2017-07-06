@@ -14,10 +14,14 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.queryParser.ParseException;
 import org.apache.lucene.queryParser.QueryParser;
 import org.apache.lucene.search.BooleanQuery;
+import org.apache.lucene.search.FuzzyQuery;
 import org.apache.lucene.search.Hits;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreDoc;
 import org.apache.lucene.search.Sort;
+import org.apache.lucene.search.SortField;
+import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.bireme.dia.analysis.StandardLatinAnalyzer;
@@ -42,7 +46,7 @@ public class TestSearch {
         QueryParser qParser = null;
         Hits hits = null;
         Document doc = null;
-        int count = 20;                 //default count
+        int count = 100;                 //default count
         
         qParser = new QueryParser("term_words", new StandardLatinAnalyzer());
         qParser.setDefaultOperator(QueryParser.AND_OPERATOR);
@@ -55,8 +59,46 @@ public class TestSearch {
         }
         
         BooleanQuery.setMaxClauseCount(Integer.MAX_VALUE);        
-        hits = searcher.search(query, new Sort("term"));        
-       
+        /*
+        SortField termField = new SortField("term", SortField.STRING, false);
+        SortField scoreField = SortField.FIELD_SCORE;
+               
+        SortField[] sortFieldList = new SortField[2];
+        sortFieldList[0] = scoreField;
+        sortFieldList[1] = termField;
+
+        Sort sort = new Sort(sortFieldList);        
+        hits = searcher.search(query, sort);
+        
+        */
+
+        SortField termField = new SortField("term", SortField.STRING, false);
+        SortField scoreField = SortField.FIELD_SCORE;
+               
+        SortField[] sortFieldList = new SortField[2];
+        sortFieldList[0] = scoreField;
+        sortFieldList[1] = termField;
+
+        //Sort sort = new Sort(sortFieldList);
+        Sort sort = new Sort("term");
+        
+        Integer numHits = 2;
+        TopDocs topDocs = searcher.search(query, numHits);
+        System.out.println(topDocs.totalHits);
+        
+        ScoreDoc[] topHits = topDocs.scoreDocs;
+        for (int i = 0; i < topHits.length; i++) {
+            int docId = topHits[i].doc;
+            Document d = searcher.doc(docId);
+            System.out.println(d.get("term"));
+            // do something with current hit
+        }
+        
+        
+        
+        hits = searcher.search(query, sort);
+
+        
         if (hits != null) {
             int len = hits.length();
             int to = (len > count ? count : len);
@@ -75,7 +117,8 @@ public class TestSearch {
     
     public static void main(String[] args) throws Exception{
         
-        TestSearch test = new TestSearch("Mirin*");
+        //TestSearch test = new TestSearch("familia OR familia*");
+        TestSearch test = new TestSearch("infeccões OR infecções*");
         
         
     }
